@@ -1,6 +1,7 @@
 import { createMcpHandler } from "mcp-handler";
 import { z } from "zod";
 import { pool, query } from "@/lib/db";
+import { nextInvoiceNumber } from "@/lib/invoice-number";
 import { keyFromRequest, userForKey, type User } from "@/lib/auth";
 
 const text = (t: string) => ({ content: [{ type: "text" as const, text: t }] });
@@ -169,8 +170,7 @@ function buildHandler(user: User, origin: string) {
           if (finalAmount === undefined) finalAmount = (Number(m.amount) * (percent ?? 100)) / 100;
         }
         if (finalAmount === undefined) return fail("Provide amount, or milestone_id (optionally with percent).");
-        const [{ n }] = await query<{ n: string }>("select coalesce(max(substring(number from 5)::int),0)+1 as n from invoices where user_id=$1", [uid]);
-        const number = `INV-${String(n).padStart(4, "0")}`;
+        const number = await nextInvoiceNumber(uid);
         const [inv] = await query<{ id: number }>(
           `insert into invoices (user_id, client_id, proposal_id, milestone_id, number, amount, due_date)
            values ($1,$2,$3,$4,$5,$6,$7) returning id`,
