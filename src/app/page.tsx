@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getUser } from "@/lib/session";
 import { query } from "@/lib/db";
 import { inr, fmtDate, serial } from "@/lib/format";
-import LoginForm from "@/components/LoginForm";
+import AuthPanel from "@/components/AuthPanel";
 
 export default async function Home() {
   const user = await getUser();
@@ -20,8 +20,7 @@ function Landing() {
             Say who the client is, what you&rsquo;re building and when each payment falls due. Claude files the client,
             the proposal and the invoice here. You open it and fix whatever it got wrong.
           </p>
-          <LoginForm />
-          <p className="small muted">No password. Your workspace key opens this page and lets Claude write to it.</p>
+          <AuthPanel />
         </div>
         <div aria-label="Example invoice" role="img" style={{ position: "relative" }}>
           <div className="leaf" style={{ transform: "rotate(1.2deg)" }}>
@@ -50,7 +49,7 @@ function Landing() {
         <div className="stack">
           <h2>Connect it once</h2>
           <ol className="steps">
-            <li><h3>Open your ledger</h3><p className="muted">Enter your workspace key above. You&rsquo;ll find your connector link on the Connect Claude tab.</p></li>
+            <li><h3>Create your workspace</h3><p className="muted">Add your name and email above. You get a private key and a ready-made connector link.</p></li>
             <li><h3>Add the connector in Claude</h3><p className="muted">Settings, Connectors, Add custom connector. Paste the link from the Connect Claude tab.</p></li>
             <li><h3>Say what happened</h3><p className="muted"><code className="say">Add Acme as a client. Website redesign, ₹80,000 in two milestones, invoice half of the first one.</code></p></li>
           </ol>

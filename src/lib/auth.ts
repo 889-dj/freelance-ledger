@@ -1,6 +1,12 @@
+import { createHash, randomBytes } from "node:crypto";
 import { query } from "@/lib/db";
 
 export type User = { id: number; name: string; email: string };
+
+export const hashKey = (key: string) => createHash("sha256").update(key).digest("hex");
+
+/** New workspace key. Only its SHA-256 hash is stored. */
+export const generateKey = () => "wk_" + randomBytes(24).toString("base64url");
 
 /** Workspace key from `Authorization: Bearer <key>` or `?key=<key>`. */
 export function keyFromRequest(req: Request): string | null {
@@ -12,8 +18,8 @@ export function keyFromRequest(req: Request): string | null {
 export async function userForKey(key: string | null): Promise<User | null> {
   if (!key) return null;
   const rows = await query<User>(
-    "select id, name, email from users where api_key = $1",
-    [key],
+    "select id, name, email from users where key_hash = $1",
+    [hashKey(key)],
   );
   return rows[0] ?? null;
 }

@@ -2,7 +2,7 @@ create table if not exists users (
   id serial primary key,
   name text not null,
   email text unique not null,
-  api_key text unique not null,
+  key_hash text unique not null,
   created_at timestamptz not null default now()
 );
 

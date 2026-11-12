@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { query } from "@/lib/db";
 import { pool } from "@/lib/db";
-import { userForKey } from "@/lib/auth";
+import { userForKey, generateKey, hashKey } from "@/lib/auth";
 import { COOKIE, requireUser } from "@/lib/session";
 import { nextInvoiceNumber } from "@/lib/invoice-number";
 
@@ -20,14 +20,45 @@ export async function login(_prev: { error?: string } | undefined, f: FormData) 
   const key = str(f, "key");
   const user = await userForKey(key);
   if (!user) return { error: "That key doesn't match any workspace. Check for extra spaces and try again." };
-  (await cookies()).set(COOKIE, key, {
+  setKeyCookie(await cookies(), key);
+
+  redirect("/");
+}
+
+function setKeyCookie(c: Awaited<ReturnType<typeof cookies>>, key: string) {
+  c.set(COOKIE, key, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 60 * 60 * 24 * 90,
   });
-  redirect("/");
+}
+
+export async function signup(_prev: { error?: string } | undefined, f: FormData) {
+  const name = str(f, "name");
+  const email = str(f, "email").toLowerCase();
+  if (!name) return { error: "Enter your name." };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "Enter a valid email address." };
+  const key = generateKey();
+  try {
+    await query("insert into users (name, email, key_hash) values ($1,$2,$3)", [name, email, hashKey(key)]);
+  } catch (e) {
+    if ((e as { code?: string }).code === "23505") {
+      return { error: "That email already has a workspace. Open it with its workspace key instead." };
+    }
+    throw e;
+  }
+  setKeyCookie(await cookies(), key);
+  redirect("/connect?new=1");
+}
+
+export async function rotateKey() {
+  const user = await requireUser();
+  const key = generateKey();
+  await query("update users set key_hash=$2 where id=$1", [user.id, hashKey(key)]);
+  setKeyCookie(await cookies(), key);
+  redirect("/connect?rotated=1");
 }
 
 export async function logout() {
